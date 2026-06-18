@@ -1,5 +1,6 @@
 import os
 import json
+import json
 from openai import OpenAI
 
 
@@ -11,7 +12,12 @@ def get_client():
     if client is None:
         api_key = os.getenv("OPENAI_API_KEY")
         if not api_key:
-            raise RuntimeError("OPENAI_API_KEY environment variable not set")
+            return None
+    global client
+    if client is None:
+        api_key = os.getenv("OPENAI_API_KEY")
+        if not api_key:
+            return None
         client = OpenAI(api_key=api_key)
     return client
 
