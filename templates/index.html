@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Mock Interview Assistant</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: #0f0f1a;
+            color: #e0e0e0;
+            min-height: 100vh;
+        }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        header {
+            text-align: center; padding: 30px 0 20px;
+            border-bottom: 1px solid #2a2a3e; margin-bottom: 30px;
+        }
+        header h1 {
+            font-size: 2em; background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+        header p { color: #888; margin-top: 8px; font-size: 0.95em; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+        .card {
+            background: #1a1a2e; border-radius: 16px; padding: 24px;
+            border: 1px solid #2a2a3e; box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+        .card h2 {
+            font-size: 1.2em; margin-bottom: 16px; color: #ccc;
+            display: flex; align-items: center; gap: 8px;
+        }
+        .card h2 .icon { font-size: 1.3em; }
+        .full-width { grid-column: 1 / -1; }
+        label { display: block; margin-bottom: 6px; font-size: 0.9em; color: #aaa; }
+        input, textarea, select {
+            width: 100%; padding: 12px 16px; background: #252540;
+            border: 1px solid #3a3a5a; border-radius: 10px; color: #e0e0e0;
+            font-size: 0.95em; outline: none; transition: border 0.2s;
+        }
+        input:focus, textarea:focus { border-color: #667eea; }
+        textarea { resize: vertical; min-height: 80px; }
+        .btn {
+            padding: 12px 24px; border: none; border-radius: 10px; cursor: pointer;
+            font-size: 0.95em; font-weight: 600; transition: all 0.2s;
+            display: inline-flex; align-items: center; gap: 8px;
+        }
+        .btn-primary { background: linear-gradient(135deg, #667eea, #764ba2); color: #fff; }
+        .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 15px rgba(102,126,234,0.4); }
+        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+        .btn-secondary { background: #252540; color: #e0e0e0; border: 1px solid #3a3a5a; }
+        .btn-secondary:hover { background: #2f2f50; }
+        .btn-danger { background: #4a1a1a; color: #ff6b6b; border: 1px solid #6a2a2a; }
+        .btn-danger:hover { background: #5a2a2a; }
+        .btn-record { background: #2a1a1a; color: #ff4444; border: 1px solid #4a2a2a; }
+        .btn-record.recording { background: #4a2020; animation: pulse 1s infinite; }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(255,68,68,0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(255,68,68,0); }
+            100% { box-shadow: 0 0 0 0 rgba(255,68,68,0); }
+        }
+        .form-group { margin-bottom: 16px; }
+        .btn-group { display: flex; gap: 12px; flex-wrap: wrap; }
+        .hidden { display: none !important; }
+        .spinner {
+            width: 18px; height: 18px; border: 2px solid #888;
+            border-top: 2px solid #667eea; border-radius: 50%; animation: spin 0.8s linear infinite;
+            display: inline-block;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        #feedback_area { margin-top: 16px; }
+        .feedback-item {
+            background: #252540; border-radius: 10px; padding: 16px; margin-top: 12px;
+            border-left: 3px solid #667eea;
+        }
+        .feedback-item .rating {
+            display: inline-block; padding: 4px 12px; border-radius: 20px;
+            font-size: 0.8em; font-weight: 600; margin-bottom: 8px;
+        }
+        .rating-Excellent { background: #1a3a2a; color: #4cdf8b; }
+        .rating-Good { background: #1a2a3a; color: #4c9adf; }
+        .rating-Average { background: #2a2a1a; color: #dfc84c; }
+        .rating-Fair { background: #2a1a1a; color: #df8b4c; }
+        .rating-Poor { background: #2a1a1a; color: #df4c4c; }
+        .score-bar {
+            height: 6px; background: #3a3a5a; border-radius: 3px; margin: 8px 0;
+            overflow: hidden;
+        }
+        .score-bar-fill {
+            height: 100%; background: linear-gradient(90deg, #667eea, #764ba2);
+            border-radius: 3px; transition: width 0.5s;
+        }
+        .tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+        .tag {
+            padding: 4px 10px; border-radius: 6px; font-size: 0.8em;
+            background: #2a2a4a; color: #aaa;
+        }
+        .tag-good { background: #1a3a2a; color: #4cdf8b; }
+        .tag-bad { background: #3a1a1a; color: #df6b6b; }
+        .history-item {
+            padding: 12px; border-radius: 10px; background: #252540;
+            margin-bottom: 8px; cursor: pointer; transition: background 0.2s;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .history-item:hover { background: #2f2f50; }
+        .analytics-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px; }
+        .stat-card {
+            background: #252540; border-radius: 10px; padding: 16px; text-align: center;
+        }
+        .stat-card .value { font-size: 1.8em; font-weight: 700; color: #667eea; }
+        .stat-card .label { font-size: 0.8em; color: #888; margin-top: 4px; }
+        .recording-indicator { color: #ff4444; font-size: 0.9em; margin-top: 8px; }
+        .question-select { margin-bottom: 12px; }
+        #questions_list { margin-top: 12px; }
+        .question-item {
+            padding: 10px 14px; background: #252540; border-radius: 8px;
+            margin-bottom: 6px; font-size: 0.9em; cursor: pointer; transition: background 0.2s;
+        }
+        .question-item:hover { background: #2f2f50; }
+        .question-item.active { border-left: 3px solid #667eea; }
+        .resume-upload-area {
+            border: 2px dashed #3a3a5a; border-radius: 12px; padding: 24px;
+            text-align: center; transition: border 0.2s; cursor: pointer;
+        }
+        .resume-upload-area:hover { border-color: #667eea; }
+        .resume-questions { margin-top: 12px; }
+        #error_toast {
+            position: fixed; top: 20px; right: 20px; background: #4a1a1a;
+            color: #ff6b6b; padding: 16px 24px; border-radius: 10px;
+            border: 1px solid #6a2a2a; z-index: 1000; max-width: 400px;
+            display: none; animation: slideIn 0.3s;
+        }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        @media (max-width: 768px) {
+            .grid { grid-template-columns: 1fr; }
+            .analytics-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+    </style>
+</head>
+<body>
+    <div id="error_toast"></div>
+    <div class="container">
+        <header>
+            <h1>AI Mock Interview Assistant</h1>
+            <p>Practice interviews with AI-powered feedback and voice input</p>
+        </header>
+
+        <div class="grid">
+            <div class="card">
+                <h2><span class="icon">🎯</span> Start Interview</h2>
+                <div class="form-group">
+                    <label for="job_role">Job Role</label>
+                    <input type="text" id="job_role" placeholder="e.g. Software Engineer, Data Scientist" />
+                </div>
+                <div class="btn-group">
+                    <button class="btn btn-primary" onclick="startInterview()" id="start_btn">
+                        Start Interview
+                    </button>
+                </div>
+
+                <div id="questions_section" class="hidden" style="margin-top:20px;">
+                    <h3 style="color:#aaa;margin-bottom:10px;">Interview Questions</h3>
+                    <div id="questions_list"></div>
+                    <div class="question-select">
+                        <label for="current_question">Selected Question</label>
+                        <select id="current_question" class="hidden"></select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2><span class="icon">💬</span> Submit Answer</h2>
+                <div class="form-group">
+                    <label for="answer_text">Type your answer</label>
+                    <textarea id="answer_text" placeholder="Type your answer here..."></textarea>
+                </div>
+                <div class="btn-group">
+                    <button class="btn btn-record" onclick="toggleRecording()" id="record_btn">
+                        🎤 Record Answer
+                    </button>
+                    <button class="btn btn-primary" onclick="submitAnswer()" id="submit_btn">
+                        Submit Answer
+                    </button>
+                </div>
+                <div id="recording_indicator" class="recording-indicator hidden">🔴 Recording... Speak now</div>
+
+                <div id="feedback_area" class="hidden">
+                    <h3 style="color:#aaa;margin-bottom:8px;">AI Feedback</h3>
+                    <div id="feedback_content"></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2><span class="icon">📂</span> Resume Upload</h2>
+                <div class="resume-upload-area" id="resume_upload_area" onclick="document.getElementById('resume_file').click()">
+                    <p style="color:#888;margin-bottom:8px;">Drop your resume here or click to upload</p>
+                    <p style="color:#666;font-size:0.8em;">Supports .txt, .pdf, .docx</p>
+                    <input type="file" id="resume_file" accept=".txt,.pdf,.docx" style="display:none"
+                           onchange="uploadResume()" />
+                </div>
+                <div id="resume_status" class="hidden" style="margin-top:12px;color:#4cdf8b;"></div>
+                <div id="resume_questions" class="resume-questions hidden"></div>
+            </div>
+
+            <div class="card">
+                <h2><span class="icon">📊</span> Performance Analytics</h2>
+                <div id="analytics_content">
+                    <p style="color:#888;font-size:0.9em;">Complete some interviews to see analytics</p>
+                </div>
+                <button class="btn btn-secondary" onclick="loadAnalytics()" style="margin-top:12px;">
+                    Refresh Analytics
+                </button>
+            </div>
+
+            <div class="card full-width">
+                <h2><span class="icon">📜</span> Interview History</h2>
+                <div id="history_content">
+                    <p style="color:#888;font-size:0.9em;">No interviews yet. Start your first interview above!</p>
+                </div>
+                <button class="btn btn-secondary" onclick="loadHistory()" style="margin-top:12px;">
+                    Refresh History
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentInterviewId = null;
+        let currentQuestions = [];
+        let currentQuestionIndex = 0;
+        let mediaRecorder = null;
+        let audioChunks = [];
+        let isRecording = false;
+
+        function showError(msg) {
+            const toast = document.getElementById('error_toast');
+            toast.textContent = msg;
+            toast.style.display = 'block';
+            setTimeout(() => { toast.style.display = 'none'; }, 5000);
+        }
+
+        async function startInterview() {
+            const jobRole = document.getElementById('job_role').value.trim();
+            if (!jobRole) { showError('Please enter a job role'); return; }
+
+            const btn = document.getElementById('start_btn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span> Starting...';
+
+            try {
+                const resp = await fetch('/api/interview/start', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ job_role: jobRole })
+                });
+                const result = await resp.json();
+                if (!result.success) { throw new Error(result.detail || 'Failed to start'); }
+
+                currentInterviewId = result.data.interview_id;
+                currentQuestions = result.data.questions;
+                currentQuestionIndex = 0;
+
+                renderQuestions();
+                document.getElementById('questions_section').classList.remove('hidden');
+                document.getElementById('feedback_area').classList.add('hidden');
+
+                showError('Interview started! Answer the questions below.');
+            } catch (e) {
+                showError('Error: ' + e.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = 'Start Interview';
+            }
+        }
+
+        function renderQuestions() {
+            const list = document.getElementById('questions_list');
+            const select = document.getElementById('current_question');
+            list.innerHTML = '';
+            select.innerHTML = '';
+
+            currentQuestions.forEach((q, i) => {
+                const div = document.createElement('div');
+                div.className = 'question-item' + (i === currentQuestionIndex ? ' active' : '');
+                div.textContent = (i + 1) + '. ' + q;
+                div.onclick = () => selectQuestion(i);
+                list.appendChild(div);
+
+                const opt = document.createElement('option');
+                opt.value = i;
+                opt.textContent = 'Question ' + (i + 1) + ': ' + q.substring(0, 50) + (q.length > 50 ? '...' : '');
+                select.appendChild(opt);
+            });
+
+            select.value = currentQuestionIndex;
+            document.getElementById('answer_text').value = '';
+            document.getElementById('feedback_area').classList.add('hidden');
+        }
+
+        function selectQuestion(index) {
+            currentQuestionIndex = index;
+            document.querySelectorAll('.question-item').forEach((el, i) => {
+                el.className = 'question-item' + (i === index ? ' active' : '');
+            });
+            document.getElementById('current_question').value = index;
+            document.getElementById('answer_text').value = '';
+            document.getElementById('feedback_area').classList.add('hidden');
+        }
+
+        async function submitAnswer() {
+            if (!currentInterviewId) { showError('Start an interview first'); return; }
+
+            const question = currentQuestions[currentQuestionIndex];
+            const answerText = document.getElementById('answer_text').value.trim();
+
+            if (!answerText) { showError('Please type an answer or use voice recording'); return; }
+
+            const btn = document.getElementById('submit_btn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span> Analyzing...';
+
+            try {
+                const resp = await fetch('/api/interview/answer', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        interview_id: currentInterviewId,
+                        question: question,
+                        answer_text: answerText
+                    })
+                });
+                const result = await resp.json();
+                if (!result.success) { throw new Error(result.detail || 'Failed to submit'); }
+
+                showFeedback(result.data);
+
+                if (currentQuestionIndex < currentQuestions.length - 1) {
+                    currentQuestionIndex++;
+                    renderQuestions();
+                } else {
+                    showError('All questions answered! Start a new interview to practice more.');
+                }
+            } catch (e) {
+                showError('Error: ' + e.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = 'Submit Answer';
+            }
+        }
+
+        async function toggleRecording() {
+            if (isRecording) {
+                stopRecording();
+                return;
+            }
+
+            if (!currentInterviewId) { showError('Start an interview first'); return; }
+
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm;codecs=opus' });
+                audioChunks = [];
+
+                mediaRecorder.ondataavailable = (e) => {
+                    if (e.data.size > 0) audioChunks.push(e.data);
+                };
+
+                mediaRecorder.onstop = async () => {
+                    stream.getTracks().forEach(t => t.stop());
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/webm;codecs=opus' });
+                    await processRecording(audioBlob);
+                };
+
+                mediaRecorder.start();
+                isRecording = true;
+                document.getElementById('record_btn').classList.add('recording');
+                document.getElementById('record_btn').innerHTML = '⏹ Stop Recording';
+                document.getElementById('recording_indicator').classList.remove('hidden');
+            } catch (e) {
+                showError('Microphone access denied. Please use text input instead.');
+            }
+        }
+
+        function stopRecording() {
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                mediaRecorder.stop();
+            }
+            isRecording = false;
+            document.getElementById('record_btn').classList.remove('recording');
+            document.getElementById('record_btn').innerHTML = '🎤 Record Answer';
+            document.getElementById('recording_indicator').classList.add('hidden');
+        }
+
+        async function processRecording(audioBlob) {
+            const reader = new FileReader();
+            reader.onloadend = async function() {
+                const base64Audio = reader.result.split(',')[1];
+
+                const question = currentQuestions[currentQuestionIndex];
+                const btn = document.getElementById('submit_btn');
+                btn.disabled = true;
+                btn.innerHTML = '<span class="spinner"></span> Processing voice...';
+
+                try {
+                    const resp = await fetch('/api/interview/answer', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            interview_id: currentInterviewId,
+                            question: question,
+                            audio_data: base64Audio
+                        })
+                    });
+                    const result = await resp.json();
+                    if (!result.success) { throw new Error(result.detail || 'Failed to process'); }
+
+                    document.getElementById('answer_text').value = result.data.answer;
+                    showFeedback(result.data);
+
+                    if (currentQuestionIndex < currentQuestions.length - 1) {
+                        currentQuestionIndex++;
+                        renderQuestions();
+                    } else {
+                        showError('All questions answered! Start a new interview to practice more.');
+                    }
+                } catch (e) {
+                    showError('Error: ' + e.message);
+                } finally {
+                    btn.disabled = false;
+                    btn.innerHTML = 'Submit Answer';
+                }
+            };
+            reader.readAsDataURL(audioBlob);
+        }
+
+        function showFeedback(data) {
+            const area = document.getElementById('feedback_area');
+            const content = document.getElementById('feedback_content');
+            area.classList.remove('hidden');
+
+            const scorePercent = Math.round(data.confidence_score * 100);
+
+            content.innerHTML = `
+                <div class="feedback-item">
+                    <div class="rating rating-${data.rating}">${data.rating}</div>
+                    <p style="margin-bottom:8px;">${data.feedback}</p>
+                    <div style="margin:12px 0;">
+                        <div style="display:flex;justify-content:space-between;font-size:0.85em;color:#aaa;">
+                            <span>Confidence Score</span>
+                            <span>${scorePercent}%</span>
+                        </div>
+                        <div class="score-bar">
+                            <div class="score-bar-fill" style="width:${scorePercent}%"></div>
+                        </div>
+                    </div>
+                    ${data.strengths && data.strengths.length ? `
+                        <div style="margin-top:12px;">
+                            <strong style="color:#4cdf8b;font-size:0.9em;">Strengths</strong>
+                            <div class="tags">
+                                ${data.strengths.map(s => `<span class="tag tag-good">${s}</span>`).join('')}
+                            </div>
+                        </div>
+                    ` : ''}
+                    ${data.weaknesses && data.weaknesses.length ? `
+                        <div style="margin-top:8px;">
+                            <strong style="color:#df6b6b;font-size:0.9em;">Weaknesses</strong>
+                            <div class="tags">
+                                ${data.weaknesses.map(w => `<span class="tag tag-bad">${w}</span>`).join('')}
+                            </div>
+                        </div>
+                    ` : ''}
+                    ${data.suggestions && data.suggestions.length ? `
+                        <div style="margin-top:8px;">
+                            <strong style="color:#dfc84c;font-size:0.9em;">Suggestions</strong>
+                            <ul style="margin-top:6px;padding-left:20px;color:#ccc;font-size:0.9em;">
+                                ${data.suggestions.map(s => `<li style="margin-bottom:4px;">${s}</li>`).join('')}
+                            </ul>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        }
+
+        async function uploadResume() {
+            const fileInput = document.getElementById('resume_file');
+            const file = fileInput.files[0];
+            if (!file) return;
+
+            const jobRole = document.getElementById('job_role').value.trim();
+            if (!jobRole) { showError('Please enter a job role first'); return; }
+
+            const status = document.getElementById('resume_status');
+            status.textContent = 'Uploading and processing resume...';
+            status.classList.remove('hidden');
+
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('job_role', jobRole);
+
+            try {
+                const resp = await fetch('/api/resume/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                const result = await resp.json();
+                if (!result.success) { throw new Error(result.detail || 'Upload failed'); }
+
+                status.textContent = 'Resume processed! ' + result.data.questions.length + ' questions generated.';
+
+                const qDiv = document.getElementById('resume_questions');
+                qDiv.innerHTML = '<strong style="color:#aaa;font-size:0.9em;">Resume-Based Questions:</strong>';
+                const list = document.createElement('div');
+                list.style.marginTop = '8px';
+                result.data.questions.forEach((q, i) => {
+                    const item = document.createElement('div');
+                    item.className = 'question-item';
+                    item.textContent = (i + 1) + '. ' + q;
+                    list.appendChild(item);
+                });
+                qDiv.appendChild(list);
+                qDiv.classList.remove('hidden');
+
+                showError('Resume uploaded successfully! Questions generated.');
+            } catch (e) {
+                status.textContent = 'Upload failed: ' + e.message;
+                showError('Error: ' + e.message);
+            }
+        }
+
+        async function loadHistory() {
+            const content = document.getElementById('history_content');
+            content.innerHTML = '<p style="color:#888;"><span class="spinner"></span> Loading history...</p>';
+
+            try {
+                const resp = await fetch('/api/interview/history');
+                const result = await resp.json();
+                if (!result.success) { throw new Error('Failed to load'); }
+
+                if (!result.data || result.data.length === 0) {
+                    content.innerHTML = '<p style="color:#888;font-size:0.9em;">No interviews yet. Start your first interview above!</p>';
+                    return;
+                }
+
+                content.innerHTML = '';
+                result.data.forEach(item => {
+                    const div = document.createElement('div');
+                    div.className = 'history-item';
+                    div.innerHTML = `
+                        <div>
+                            <strong>${item.job_role}</strong>
+                            <div style="font-size:0.8em;color:#888;margin-top:4px;">
+                                ${item.date ? new Date(item.date).toLocaleDateString() : 'Unknown date'}
+                                 · ${item.total_questions} questions
+                            </div>
+                        </div>
+                        <div style="text-align:right;">
+                            <div style="color:#667eea;font-weight:600;">
+                                ${Math.round(item.avg_confidence * 100)}%
+                            </div>
+                            <div style="font-size:0.75em;color:#888;margin-top:2px;">
+                                ${item.overall_rating}
+                            </div>
+                        </div>
+                    `;
+                    content.appendChild(div);
+                });
+            } catch (e) {
+                content.innerHTML = '<p style="color:#ff6b6b;">Failed to load history.</p>';
+            }
+        }
+
+        async function loadAnalytics() {
+            const content = document.getElementById('analytics_content');
+            content.innerHTML = '<p style="color:#888;"><span class="spinner"></span> Loading analytics...</p>';
+
+            try {
+                const resp = await fetch('/api/interview/analytics');
+                const result = await resp.json();
+                if (!result.success) { throw new Error('Failed to load'); }
+
+                const d = result.data;
+
+                if (d.total_interviews === 0) {
+                    content.innerHTML = '<p style="color:#888;font-size:0.9em;">Complete some interviews to see analytics</p>';
+                    return;
+                }
+
+                content.innerHTML = `
+                    <div class="analytics-grid">
+                        <div class="stat-card">
+                            <div class="value">${d.total_interviews}</div>
+                            <div class="label">Interviews</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="value">${d.total_questions}</div>
+                            <div class="label">Questions</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="value">${Math.round(d.avg_confidence * 100)}%</div>
+                            <div class="label">Avg Confidence</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="value">${d.avg_rating}</div>
+                            <div class="label">Avg Rating</div>
+                        </div>
+                    </div>
+                    ${d.confidence_trend && d.confidence_trend.length > 0 ? `
+                        <div style="margin-top:12px;">
+                            <strong style="color:#aaa;font-size:0.9em;">Confidence Trend</strong>
+                            <div style="margin-top:8px;">
+                                ${d.confidence_trend.map(t => `
+                                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;font-size:0.85em;">
+                                        <span style="color:#888;width:80px;">${t.date}</span>
+                                        <div style="flex:1;height:4px;background:#3a3a5a;border-radius:2px;">
+                                            <div style="height:100%;width:${Math.round(t.avg_confidence * 100)}%;background:#667eea;border-radius:2px;"></div>
+                                        </div>
+                                        <span style="color:#667eea;">${Math.round(t.avg_confidence * 100)}%</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    ` : ''}
+                    ${d.role_performance && d.role_performance.length > 0 ? `
+                        <div style="margin-top:12px;">
+                            <strong style="color:#aaa;font-size:0.9em;">Performance by Role</strong>
+                            <div style="margin-top:8px;font-size:0.85em;">
+                                ${d.role_performance.map(r => `
+                                    <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #2a2a3e;">
+                                        <span>${r.role}</span>
+                                        <span style="color:#667eea;">${Math.round(r.avg_confidence * 100)}% (${r.count} questions)</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    ` : ''}
+                `;
+            } catch (e) {
+                content.innerHTML = '<p style="color:#ff6b6b;">Failed to load analytics.</p>';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadHistory();
+            loadAnalytics();
+        });
+    </script>
+</body>
+</html>
